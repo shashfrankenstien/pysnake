@@ -2,10 +2,15 @@ from getkey import getkey, keys
 from threading import Thread, Lock
 from sg_utils import dotdict
 from collections import deque
+import requests
+import base64
 import random
 import string
+import json
 import os
 import time
+
+GITHUB = 'https://api.github.com/repos/shashfrankenstien/pysnake/contents/'
 
 class Colors(object):
 	RED = 31
@@ -21,6 +26,48 @@ class Colors(object):
 			color = random.choice(color)
 		color_code = '{};{}'.format(1 if bold else 0, color)
 		return "\u001b[{}m".format(color_code)+message+"\u001b[0m"
+
+class Score(object):
+	def __init__(self):
+		self.score_file = 'high_score.json'
+		self.current_user = os.getlogin()
+		self.score = 0
+		self.__init_score_file()
+
+	def __init_score_file(self):
+		if not os.path.isfile(self.score_file):self.__set_scores(scores={})
+		high_scores = self.__get_scores()
+		if not isinstance(high_scores, dict):
+			self.__set_scores(scores={})
+		elif self.current_user not in high_scores:
+			high_scores[self.current_user] = self.score
+			self.__set_scores(scores=high_scores)
+
+	def __get_scores(self):
+		with open(self.score_file, 'rb') as handle:
+			return json.load(handle)
+
+	def __set_scores(self, scores):
+		with open(self.score_file, 'wb') as handle:
+			json.dump(scores, handle, indent=4)
+
+
+	def increment(self):
+		self.score += 1
+
+	def set_high_score(self):
+		high_scores = self.__get_scores()
+		if self.score > high_scores[self.current_user]:
+			high_scores[self.current_user] = self.score
+			self.__set_scores(high_scores)
+	
+	def get_my_high_score(self):
+		return self.__get_scores()[self.current_user]
+
+
+	def get_top_scorer(self, n):
+		high_scores = self.__get_scores()
+
 
 
 class SnakeGame(object):
