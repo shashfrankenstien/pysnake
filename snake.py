@@ -2,6 +2,7 @@ from getkey import getkey, keys
 from threading import Thread, Lock
 from sg_utils import dotdict
 from collections import deque
+from score_keeper import TwitterScoreKeeper
 import requests
 import base64
 import random
@@ -10,7 +11,6 @@ import json
 import os
 import time
 
-GITHUB = 'https://api.github.com/repos/shashfrankenstien/pysnake/contents/'
 
 class Colors(object):
 	RED = 31
@@ -27,47 +27,6 @@ class Colors(object):
 		color_code = '{};{}'.format(1 if bold else 0, color)
 		return "\u001b[{}m".format(color_code)+message+"\u001b[0m"
 
-class Score(object):
-	def __init__(self):
-		self.score_file = 'high_score.json'
-		self.current_user = os.getlogin()
-		self.score = 0
-		self.__init_score_file()
-
-	def __init_score_file(self):
-		if not os.path.isfile(self.score_file):self.__set_scores(scores={})
-		high_scores = self.__get_scores()
-		if not isinstance(high_scores, dict):
-			self.__set_scores(scores={})
-		elif self.current_user not in high_scores:
-			high_scores[self.current_user] = self.score
-			self.__set_scores(scores=high_scores)
-
-	def __get_scores(self):
-		with open(self.score_file, 'rb') as handle:
-			return json.load(handle)
-
-	def __set_scores(self, scores):
-		with open(self.score_file, 'wb') as handle:
-			json.dump(scores, handle, indent=4)
-
-
-	def increment(self):
-		self.score += 1
-
-	def set_high_score(self):
-		high_scores = self.__get_scores()
-		if self.score > high_scores[self.current_user]:
-			high_scores[self.current_user] = self.score
-			self.__set_scores(high_scores)
-	
-	def get_my_high_score(self):
-		return self.__get_scores()[self.current_user]
-
-
-	def get_top_scorer(self, n):
-		high_scores = self.__get_scores()
-
 
 
 class SnakeGame(object):
@@ -78,10 +37,10 @@ class SnakeGame(object):
 		self.board_color = Colors.BLUE
 		self.top_bottom_wall_char = '='
 		self.side_wall_char = '|'
-		self.title = 'PYTHON'
-		self.score = 0
-		self.high_score_store = '.high_score'
-		self.__set_high_score()
+		self.title = '@snake_pysnake'
+		self.score = TwitterScoreKeeper()
+		# self.high_score_store = '.high_score'
+		# self.__set_high_score()
 
 
 		self.inputs = deque()
@@ -104,30 +63,44 @@ class SnakeGame(object):
 			board_width=self.width,
 			feeding_interval=100)
 
-	def __set_high_score(self):
-		high_score = 0
-		if os.path.isfile(self.high_score_store): 
-			with open('.high_score', 'r') as h:
-				try:
-					high_score = int(h.read())
-				except:
-					pass
-		if not high_score:high_score = self.score
+	# def __set_high_score(self):
+	# 	high_score = 0
+	# 	if os.path.isfile(self.high_score_store): 
+	# 		with open('.high_score', 'r') as h:
+	# 			try:
+	# 				high_score = int(h.read())
+	# 			except:
+	# 				pass
+	# 	if not high_score:high_score = self.score
 
-		if high_score<=self.score:
-			high_score = self.score
-		with open('.high_score', 'w') as h:
-			h.write(str(high_score))
-		self.high_score = high_score
+	# 	if high_score<=self.score:
+	# 		high_score = self.score
+	# 	with open('.high_score', 'w') as h:
+	# 		h.write(str(high_score))
+	# 	self.high_score = high_score
 
 
 	def __make_title(self):
-		score = 'Score: {}'.format(self.score)
-		high_score = 'High Score: {}'.format(self.high_score)
+		# score = 'Score: {}'.format(self.score.score)
+		# top_scorer, top_score = self.score.current_high_score
+		# high_score = 'High Score: {} {}'.format(top_scorer, top_score)
 		side_length = int((self.width-len(self.title))/2)
+		# l_side = ' '*(side_length - len(high_score))
+		# r_side = ' '*(side_length - len(score))
+		# return Colors.colorize('{}{}{}{}{}'.format(high_score, l_side, self.title, r_side, score), Colors.WHITE)
+
+		side = ' '*side_length
+		return Colors.colorize('{}{}{}'.format(side, self.title, side), Colors.WHITE)
+
+
+	def __make_footer(self):
+		score = 'Score: {}'.format(self.score.score)
+		top_scorer, top_score = self.score.current_high_score
+		high_score = 'High Score: {} {}'.format(top_scorer, top_score)
+		side_length = int((self.width)/2)
 		l_side = ' '*(side_length - len(high_score))
 		r_side = ' '*(side_length - len(score))
-		return Colors.colorize('{}{}{}{}{}'.format(high_score, l_side, self.title, r_side, score), Colors.WHITE)
+		return Colors.colorize('{}{}{}{}'.format(high_score, l_side, r_side, score), Colors.WHITE)
 
 
 	def __blank_board(self):
@@ -143,8 +116,8 @@ class SnakeGame(object):
 
 	def __crash_message(self, message, board, color=None):
 		messages = message.split('\n')
-		if self.score>self.high_score: 
-			messages.append('New High Score! {}'.format(self.score))
+		if self.score.current_high_score[1] and self.score.score>self.score.current_high_score[1]:
+			messages.append('New High Score! {}'.format(self.score.score))
 		messages += ['', 'Press any key to quit']
 		start_y = int((self.height-len(messages))/2)
 		for row in range(len(messages)):
@@ -179,7 +152,7 @@ class SnakeGame(object):
 			elif self.food.exists(new_x,new_y):
 				self.snake.eat(self.food.locations[(new_x,new_y)])
 				self.food.got_eaten(new_x,new_y)
-				self.score += 1
+				self.score.increment()
 
 		for x,y in self.snake.address:
 			board[y][x] = self.snake.char
@@ -200,9 +173,9 @@ class SnakeGame(object):
 		board = self.__blank_board()
 		board = self.__toss_food(board)
 		board = self.__render_snake(board)
-		
 		for row in board:
 			print(''.join(row))
+		print(self.__make_footer())
 
 
 	def __read_keys(self):
@@ -235,7 +208,8 @@ class SnakeGame(object):
 			except IndexError:
 				pass
 			time.sleep(self.refresh_rate)
-		self.__set_high_score()
+		self.score.set_high_score()
+		# self.__set_high_score()
 		self.input_thread.join()
 
 	def quit(self):
