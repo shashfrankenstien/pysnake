@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 import sys
-import termios
+
 import contextlib
 from sys import platform
-import msvcrt
+
+if platform == "win32":
+    import msvcrt
+else:
+    import termios
 # from getch import getch
 
 @contextlib.contextmanager
