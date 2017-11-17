@@ -181,7 +181,7 @@ class SnakeGame(object):
 	def __read_keys(self):
 		key = None
 		while self.playing:
-			key = getkey(blocking=True)
+			key = getkey()
 			if key:
 				self.inputs.appendleft(key)
 				key = None
