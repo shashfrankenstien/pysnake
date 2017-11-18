@@ -1,9 +1,9 @@
-from getkey import getkey, keys
+# from getkey import getkey, keys
 from threading import Thread, Lock
 from sg_utils import dotdict
 from collections import deque
 from score_keeper import TwitterScoreKeeper
-import requests
+from getkeys import getch, keys
 import base64
 import random
 import string
@@ -21,11 +21,13 @@ class Colors(object):
 	LIGHT_BLUE = 36
 	WHITE = 37
 
+	@staticmethod
 	def colorize(message, color, bold=False):
 		if isinstance(color, list):
 			color = random.choice(color)
 		color_code = '{};{}'.format(1 if bold else 0, color)
-		return "\u001b[{}m".format(color_code)+message+"\u001b[0m"
+		# return "\u001b[{}m".format(color_code)+message+"\u001b[0m"
+		return "\033[{}m".format(color_code)+message+"\033[0m"
 
 
 
@@ -181,7 +183,9 @@ class SnakeGame(object):
 	def __read_keys(self):
 		key = None
 		while self.playing:
-			key = getkey()
+			# key = getkey()
+			key = getch()
+
 			if key:
 				self.inputs.appendleft(key)
 				key = None
@@ -195,15 +199,15 @@ class SnakeGame(object):
 			self.render()
 			try:
 				key = self.inputs.pop()
-				if key == 'q': 
+				if key == keys.Q: 
 					self.quit()
-				elif key == keys.UP or key == 'w':
+				elif key == keys.UP or key == keys.W:
 					self.snake.turn_up()
-				elif key == keys.DOWN or  key == 's':
+				elif key == keys.DOWN or  key == keys.S:
 					self.snake.turn_down()
-				elif key == keys.RIGHT or key == 'd':
+				elif key == keys.RIGHT or key == keys.D:
 					self.snake.turn_right()
-				elif key == keys.LEFT or key == 'a':
+				elif key == keys.LEFT or key == keys.A:
 					self.snake.turn_left()
 			except IndexError:
 				pass

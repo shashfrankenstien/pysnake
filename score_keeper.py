@@ -7,6 +7,16 @@ twitter = UserClient('VxihO3nqNHKxS8wHJ1RbBJ9O6',
                     '930956740031590400-OPm95rGIWOXPPuCIjilsast0HiPxkL8',
                     '0CdlbpHy7uUYkIMfq2q42xOgiKksbNQ27yulW5CTFhUQd')
 
+import requests
+
+def internet_on(url='http://www.google.com/', timeout=2):
+	print('Attempting Network Connection...')
+	try:
+		_ = requests.get(url, timeout=timeout)
+		return True
+	except requests.ConnectionError:
+		print("No internet connection available.")
+		return False
 
 
 class TwitterScoreKeeper(object):
@@ -17,12 +27,15 @@ class TwitterScoreKeeper(object):
 		self.__init_high_scores()
 
 	def __init_high_scores(self):
-		try:
-			self.high_scores = self.__get_scores()
-			self.current_high_score = self.__get_top_scorer()
-		except TwitterClientError:
-			self.high_scores = {}
-			self.current_high_score = ('No Network','')
+		self.high_scores = {}
+		self.current_high_score = ('No Network','')
+		if internet_on():
+			try:
+				self.high_scores = self.__get_scores()
+				self.current_high_score = self.__get_top_scorer()
+			except TwitterClientError:
+				pass
+
 
 	def increment(self):
 		self.score += 1
@@ -48,7 +61,7 @@ class TwitterScoreKeeper(object):
 
 
 	def set_high_score(self):
-		if self.score > self.current_high_score[1]:
+		if isinstance(self.current_high_score[1], int) and self.score > self.current_high_score[1]:
 			self.__set_scores(self.score)
 	
 	def get_high_scores(self):

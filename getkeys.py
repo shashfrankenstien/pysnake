@@ -10,6 +10,17 @@ else:
     import termios
 # from getch import getch
 
+class keys:
+    UP = [27, 91, 65]
+    DOWN = [27, 91, 66]
+    RIGHT = [27, 91, 67]
+    LEFT = [27, 91, 68]
+    W = ([87] or [119])
+    S = ([83] or [115])
+    A = ([65] or [97])
+    D = ([68] or [100])
+    Q = ([81] or [113])
+
 @contextlib.contextmanager
 def raw_mode(file):
     old_attrs = termios.tcgetattr(file.fileno())
@@ -56,5 +67,9 @@ def do_getch():
         yield x
 
 if __name__ == '__main__':
+    print (keys.W)
     for ch in do_getch():
-        print (ch)
+        if ch==keys.W:
+            print('w')
+        else:
+            print(ch)
