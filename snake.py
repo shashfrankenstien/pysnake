@@ -197,13 +197,13 @@ class SnakeGame(object):
 				key = self.inputs.pop()
 				if key == 'q': 
 					self.quit()
-				elif key == keys.UP:
+				elif key == keys.UP or key == 'w':
 					self.snake.turn_up()
-				elif key == keys.DOWN:
+				elif key == keys.DOWN or  key == 's':
 					self.snake.turn_down()
-				elif key == keys.RIGHT:
+				elif key == keys.RIGHT or key == 'd':
 					self.snake.turn_right()
-				elif key == keys.LEFT:
+				elif key == keys.LEFT or key == 'a':
 					self.snake.turn_left()
 			except IndexError:
 				pass
