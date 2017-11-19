@@ -1,9 +1,10 @@
 # from getkey import getkey, keys
-from threading import Thread, Lock
+from threading import Thread
 from sg_utils import dotdict
 from collections import deque
 from score_keeper import TwitterScoreKeeper
 from getkeys import getch, keys
+from emoji import emoji
 import base64
 import random
 import string
@@ -11,6 +12,7 @@ import json
 import os
 import time
 
+USE_EMOJI = False
 
 class Colors(object):
 	RED = 31
@@ -50,14 +52,20 @@ class SnakeGame(object):
 		self.playing = False
 		self.refresh_rate = 0.1
 
-		self.snake = Snake('o', 
+		self.snake = Snake(emoji.get_random_face() if USE_EMOJI else 'o', 
 			head_x=self.width/2, 
 			head_y=self.height/2, 
 			length=4,
 			color=Colors.GREEN)
 
-		self.edibles = [Colors.colorize(x, [Colors.LIGHT_BLUE, Colors.GREEN, Colors.YELLOW, Colors.WHITE]) for x in ['$', '%', '@', '#','^', '&']+list(string.ascii_lowercase)]
-		self.poisons = [Colors.colorize(x,Colors.RED) for x in ['X']]
+		if USE_EMOJI:
+			self.edibles = emoji.get_foods()
+			self.poisons = emoji.get_deadly()
+		else:
+			self.edibles = [Colors.colorize(x, [Colors.LIGHT_BLUE, Colors.GREEN, Colors.YELLOW, Colors.WHITE]) for x in ['$', '%', '@', '#','^', '&']+list(string.ascii_lowercase)]
+			self.poisons = [Colors.colorize(x,Colors.RED) for x in ['X']]
+
+		
 		self.food = Food(
 			edibles = self.edibles,
 			poisons = self.poisons,
@@ -330,7 +338,10 @@ class Snake(object):
 			raise Crash('Snake is dead')
 
 	def eat(self, food):
-		self.char = food
+		if USE_EMOJI:
+			self.char = emoji.get_random_face()
+		else:
+			self.char = food
 		self.pop_tail = False
 
 
