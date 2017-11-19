@@ -1,7 +1,7 @@
 # from getkey import getkey, keys
 from threading import Thread
 from sg_utils import dotdict
-from collections import deque
+from collections import deque, defaultdict
 from score_keeper import TwitterScoreKeeper
 from getkeys import getch, keys
 from emoji import emoji
@@ -13,6 +13,7 @@ import os
 import time
 
 USE_EMOJI = False
+GRADUAL_FOOD_TOSS = True
 
 class Colors(object):
 	RED = 31
@@ -70,24 +71,8 @@ class SnakeGame(object):
 			edibles = self.edibles,
 			poisons = self.poisons,
 			board_height=self.height,
-			board_width=self.width,
-			feeding_interval=100)
+			board_width=self.width)
 
-	# def __set_high_score(self):
-	# 	high_score = 0
-	# 	if os.path.isfile(self.high_score_store): 
-	# 		with open('.high_score', 'r') as h:
-	# 			try:
-	# 				high_score = int(h.read())
-	# 			except:
-	# 				pass
-	# 	if not high_score:high_score = self.score
-
-	# 	if high_score<=self.score:
-	# 		high_score = self.score
-	# 	with open('.high_score', 'w') as h:
-	# 		h.write(str(high_score))
-	# 	self.high_score = high_score
 
 
 	def __make_title(self):
@@ -160,7 +145,7 @@ class SnakeGame(object):
 				msg = 'Poisoned!'
 				self.quit()
 			elif self.food.exists(new_x,new_y):
-				self.snake.eat(self.food.locations[(new_x,new_y)])
+				self.snake.eat(self.food.get_food_at(new_x,new_y))
 				self.food.got_eaten(new_x,new_y)
 				self.score.increment()
 
@@ -170,18 +155,12 @@ class SnakeGame(object):
 		return board
 
 
-	def __toss_food(self, board):
-		if self.food.can_toss():self.food.toss(15)
-		for loc in self.food.locations:
-			x,y = loc
-			board[y][x] = self.food.locations[loc]
-		return board
 
 	def render(self):
 		os.system('clear')
 		print(self.__make_title())
 		board = self.__blank_board()
-		board = self.__toss_food(board)
+		board = self.food.toss(board, n=20)
 		board = self.__render_snake(board)
 		for row in board:
 			print(''.join(row))
@@ -221,8 +200,8 @@ class SnakeGame(object):
 				pass
 			time.sleep(self.refresh_rate)
 		self.score.set_high_score()
-		# self.__set_high_score()
 		self.input_thread.join()
+
 
 	def quit(self):
 		self.playing = False
@@ -234,26 +213,49 @@ class Food(object):
 		self.width = board_width
 		self.edibles = edibles
 		self.poisons = poisons
-		self.locations = {}
-		self.feeding_interval = feeding_interval
-		self.feed_wait_time = feeding_interval+1
+		self.feeding_interval = feeding_interval if feeding_interval>self.height else int(self.height)
+		self.feed_wait_time = self.feeding_interval+1
 		self.edibles_count = 0
 
-	def toss(self, n=10):
-		self.locations = {}
-		food_count = int(n*0.3)
-		self.edibles_count = food_count
-		for i in range(n):
-			x = random.randrange(1,self.width-2)
-			y = random.randrange(1,self.height-2)
-			if food_count:
-				self.locations[(x,y)] = random.choice(self.edibles)
-				food_count -= 1
-			else:
-				self.locations[(x,y)] = random.choice(self.poisons)
-		self.feed_wait_time = 0
+		self.locations = defaultdict(dict)
+		self.new_locations = defaultdict(dict)
 
-	def can_toss(self):
+	def toss(self, board, n=10):
+		if self.__can_toss():
+			self.new_locations = defaultdict(dict)
+			food_count = int(n*0.3)
+			self.edibles_count = food_count
+			for i in range(n):
+				x = random.randrange(1,self.width-2)
+				y = random.randrange(1,self.height-2)
+				if food_count:
+					self.new_locations[y][x] = random.choice(self.edibles)
+					food_count -= 1
+				else:
+					self.new_locations[y][x] = random.choice(self.poisons)
+			self.feed_wait_time = 0
+
+		return self.__render(board)
+
+
+	def __render(self, board):
+		if GRADUAL_FOOD_TOSS:
+			if self.feed_wait_time in self.locations:
+				del self.locations[self.feed_wait_time]
+			if self.feed_wait_time in self.new_locations:
+				self.locations[self.feed_wait_time] = self.new_locations[self.feed_wait_time]
+		else:
+			self.locations = self.new_locations
+		for y in self.locations:
+			for x in self.locations[y]:
+				board[y][x] = self.locations[y][x]
+		return board
+
+	def __can_toss(self):
+		# current_locations = self.locations
+		# for i, loc in enumerate(current_locations):
+		# 	if loc[1] == self.feed_wait_time:
+
 		if self.feed_wait_time > self.feeding_interval:
 			return True
 		elif self.edibles_count==0:
@@ -263,18 +265,21 @@ class Food(object):
 			return False
 
 	def exists(self, x, y):
-		return (x,y) in self.locations
+		return y in self.locations and x in self.locations[y]
 
 	def is_poisonous(self,x,y):
-		if self.exists(x, y) and self.locations[(x,y)] in self.poisons:
+		if self.exists(x, y) and self.locations[y][x] in self.poisons:
 			return True
 		else:
 			return False
 
+	def get_food_at(self,x,y):
+		return self.locations[y][x]
+
 	def got_eaten(self, x, y):
-		if self.locations[(x,y)] in self.edibles:
+		if self.locations[y][x] in self.edibles:
 			self.edibles_count -= 1
-			del self.locations[(x,y)]
+			del self.locations[y][x]
 
 
 
