@@ -6,6 +6,7 @@ from score_keeper import TwitterScoreKeeper
 from getkeys import getch, keys
 from emoji import emoji
 import base64
+import copy
 import random
 import string
 import json
@@ -13,8 +14,15 @@ import os
 import time
 
 USE_EMOJI = 0
-GRADUAL_FOOD_TOSS = 0
-MOVING_POISON = 1
+GRADUAL_FOOD_TOSS = 1
+LEVEL_UP_AT = {
+	0:1,
+	10:2,
+	20:3
+}
+
+def print_it(it):
+	print((' '*20)+str(it))
 
 class Colors(object):
 	RED = 31
@@ -68,7 +76,7 @@ class SnakeGame(object):
 			self.poisons = [Colors.colorize(x,Colors.RED) for x in ['X']]
 
 		
-		self.food = Food(
+		self.obstacle = Obstacles(
 			edibles = self.edibles,
 			poisons = self.poisons,
 			board_height=self.height,
@@ -77,16 +85,16 @@ class SnakeGame(object):
 
 
 	def __make_title(self):
-		# score = 'Score: {}'.format(self.score.score)
+		level = 'Level: {}'.format(self.obstacle.current_level)
 		# top_scorer, top_score = self.score.current_high_score
 		# high_score = 'High Score: {} {}'.format(top_scorer, top_score)
 		side_length = int((self.width-len(self.title))/2)
-		# l_side = ' '*(side_length - len(high_score))
-		# r_side = ' '*(side_length - len(score))
+		l_side = ' '*(side_length)
+		r_side = ' '*(side_length - len(level))
 		# return Colors.colorize('{}{}{}{}{}'.format(high_score, l_side, self.title, r_side, score), Colors.WHITE)
 
 		side = ' '*side_length
-		return Colors.colorize('{}{}{}'.format(side, self.title, side), Colors.WHITE)
+		return Colors.colorize('{}{}{}{}'.format(l_side, self.title, r_side, level), Colors.WHITE)
 
 
 	def __make_footer(self):
@@ -142,12 +150,12 @@ class SnakeGame(object):
 			if self.did_hit_border(new_x,new_y):
 				msg = 'Crashed!'
 				self.quit()
-			elif self.food.is_poisonous(new_x,new_y):
+			elif self.obstacle.is_poisonous(new_x,new_y):
 				msg = 'Poisoned!'
 				self.quit()
-			elif self.food.exists(new_x,new_y):
-				self.snake.eat(self.food.get_food_at(new_x,new_y))
-				self.food.got_eaten(new_x,new_y)
+			elif self.obstacle.exists(new_x,new_y):
+				self.snake.eat(self.obstacle.get_food_at(new_x,new_y))
+				self.obstacle.got_eaten(new_x,new_y)
 				self.score.increment()
 
 		for x,y in self.snake.address:
@@ -155,17 +163,21 @@ class SnakeGame(object):
 		if msg: board = self.__crash_message(msg, board, Colors.RED)
 		return board
 
+	def __do_level_change(self):
+		if self.score.score in LEVEL_UP_AT:
+			self.obstacle.level_up(LEVEL_UP_AT[self.score.score])
 
 
 	def render(self):
+		self.__do_level_change()
 		os.system('clear')
-		print(self.__make_title())
+		print_it(self.__make_title())
 		board = self.__blank_board()
-		board = self.food.toss(board, n=20)
+		board = self.obstacle.toss(board, n=20)
 		board = self.__render_snake(board)
 		for row in board:
-			print(''.join(row))
-		print(self.__make_footer())
+			print_it(''.join(row))
+		print_it(self.__make_footer())
 
 
 	def __read_keys(self):
@@ -208,19 +220,41 @@ class SnakeGame(object):
 		self.playing = False
 
 
-class Food(object):
-	def __init__(self, edibles, poisons, board_height, board_width, feeding_interval=20):
+class Obstacles(object):
+	def __init__(self, edibles, poisons, board_height, board_width, feeding_interval=100):
 		self.height = board_height
 		self.width = board_width
-		self.edibles = edibles
-		self.poisons = poisons
-		self.feeding_interval = feeding_interval if feeding_interval>self.height else int(self.height)
-		self.feed_wait_time = self.feeding_interval+1
+		self.edibles = [e for e in edibles if e!='_']
+		self.poisons = [p for p in poisons if p!='_']
+		self.__sweeper = '_'
 		self.edibles_count = 0
 		self.poison_move_tracker = 0
 
 		self.locations = defaultdict(dict)
 		self.new_locations = defaultdict(dict)
+
+		self.levels = {
+			1: dotdict({
+				'feeding_interval': feeding_interval,
+				'feed_wait_time': feeding_interval+1,
+				'gradual_food_toss': 0,
+				'food_gradation':1
+			}),
+			2: dotdict({
+				'feeding_interval': int(self.height)*2,
+				'feed_wait_time': (int(self.height)*2)+1,
+				'gradual_food_toss': 1,
+				'food_gradation':2
+			}),
+			3: dotdict({
+				'feeding_interval': int(self.height),
+				'feed_wait_time': int(self.height)+1,
+				'gradual_food_toss': 1,
+				'food_gradation':1
+			})
+		}
+		self.current_level = 1
+		
 
 	def toss(self, board, n=10):
 		if self.__can_toss():
@@ -235,47 +269,42 @@ class Food(object):
 					food_count -= 1
 				else:
 					self.new_locations[y][x] = random.choice(self.poisons)
-			self.feed_wait_time = 0
+			self.levels[self.current_level].feed_wait_time = 0
 			self.poison_move_tracker = 0
 
 		return self.__render(board)
 
 
+
 	def __render(self, board):
-		if GRADUAL_FOOD_TOSS:
-			if self.feed_wait_time in self.locations:
-				del self.locations[self.feed_wait_time]
-			if self.feed_wait_time in self.new_locations:
-				self.locations[self.feed_wait_time] = self.new_locations[self.feed_wait_time]
+		curr_L = self.levels[self.current_level]
+		if GRADUAL_FOOD_TOSS and curr_L.gradual_food_toss:
+			y = int(curr_L.feed_wait_time/curr_L.food_gradation)
+			if y in self.locations:
+				del self.locations[y]
+			if y in self.new_locations:
+				self.locations[y] = self.new_locations[y]
+			if y+1<self.height: self.locations[y+1] = {x:self.__sweeper for x in range(1, self.width-1)}
 		else:
 			self.locations = self.new_locations
-		if MOVING_POISON:
-			locs = self.locations
-			for y in locs:
-				for x in locs[y]:
-					if self.is_poisonous(x,y):
-						self.locations[y][x-1] = locs[y][x]
 
 		for y in self.locations:
 			for x in self.locations[y]:
 				board[y][x] = self.locations[y][x]
 		return board
 
-	def __can_toss(self):
-		# current_locations = self.locations
-		# for i, loc in enumerate(current_locations):
-		# 	if loc[1] == self.feed_wait_time:
 
-		if self.feed_wait_time > self.feeding_interval:
+	def __can_toss(self):
+		if self.levels[self.current_level].feed_wait_time > self.levels[self.current_level].feeding_interval:
 			return True
 		elif self.edibles_count==0:
 			return True
 		else:
-			self.feed_wait_time+=1
+			self.levels[self.current_level].feed_wait_time+=1
 			return False
 
 	def exists(self, x, y):
-		return y in self.locations and x in self.locations[y]
+		return y in self.locations and x in self.locations[y] and self.locations[y][x]!=self.__sweeper
 
 	def is_poisonous(self,x,y):
 		if self.exists(x, y) and self.locations[y][x] in self.poisons:
@@ -290,6 +319,10 @@ class Food(object):
 		if self.locations[y][x] in self.edibles:
 			self.edibles_count -= 1
 			del self.locations[y][x]
+
+	def level_up(self, level):
+		if level in self.levels:
+			self.current_level = level
 
 
 
