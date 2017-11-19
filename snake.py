@@ -250,10 +250,11 @@ class Food(object):
 		else:
 			self.locations = self.new_locations
 		if MOVING_POISON:
-			for y in self.locations:
-				for x in self.locations[y]:
+			locs = self.locations
+			for y in locs:
+				for x in locs[y]:
 					if self.is_poisonous(x,y):
-						self.locations[y][x-1] = self.locations[y][x]
+						self.locations[y][x-1] = locs[y][x]
 
 		for y in self.locations:
 			for x in self.locations[y]:
