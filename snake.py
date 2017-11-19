@@ -1,4 +1,3 @@
-# from getkey import getkey, keys
 from threading import Thread
 from sg_utils import dotdict
 from collections import deque, defaultdict
@@ -22,7 +21,7 @@ LEVEL_UP_AT = {
 }
 
 def print_it(it):
-	print((' '*20)+str(it))
+	print((' '*10)+str(it))
 
 class Colors(object):
 	RED = 31
