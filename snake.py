@@ -219,13 +219,15 @@ class SnakeGame(object):
 		self.playing = False
 
 
+
+
 class Obstacles(object):
 	def __init__(self, edibles, poisons, board_height, board_width, feeding_interval=100):
 		self.height = board_height
 		self.width = board_width
-		self.edibles = [e for e in edibles if e!='_']
-		self.poisons = [p for p in poisons if p!='_']
-		self.__sweeper = '_'
+		self.__sweeper = '.'
+		self.edibles = [e for e in edibles if e!=self.__sweeper]
+		self.poisons = [p for p in poisons if p!=self.__sweeper]
 		self.edibles_count = 0
 		self.poison_move_tracker = 0
 
