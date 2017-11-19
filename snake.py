@@ -12,8 +12,9 @@ import json
 import os
 import time
 
-USE_EMOJI = False
-GRADUAL_FOOD_TOSS = True
+USE_EMOJI = 0
+GRADUAL_FOOD_TOSS = 0
+MOVING_POISON = 1
 
 class Colors(object):
 	RED = 31
@@ -216,6 +217,7 @@ class Food(object):
 		self.feeding_interval = feeding_interval if feeding_interval>self.height else int(self.height)
 		self.feed_wait_time = self.feeding_interval+1
 		self.edibles_count = 0
+		self.poison_move_tracker = 0
 
 		self.locations = defaultdict(dict)
 		self.new_locations = defaultdict(dict)
@@ -234,6 +236,7 @@ class Food(object):
 				else:
 					self.new_locations[y][x] = random.choice(self.poisons)
 			self.feed_wait_time = 0
+			self.poison_move_tracker = 0
 
 		return self.__render(board)
 
@@ -246,6 +249,12 @@ class Food(object):
 				self.locations[self.feed_wait_time] = self.new_locations[self.feed_wait_time]
 		else:
 			self.locations = self.new_locations
+		if MOVING_POISON:
+			for y in self.locations:
+				for x in self.locations[y]:
+					if self.is_poisonous(x,y):
+						self.locations[y][x-1] = self.locations[y][x]
+
 		for y in self.locations:
 			for x in self.locations[y]:
 				board[y][x] = self.locations[y][x]
