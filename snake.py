@@ -18,7 +18,7 @@ GRADUAL_FOOD_TOSS = 1
 LEVEL_UP_AT = {
 	0:1,
 	10:2,
-	20:3
+	25:3
 }
 
 def print_it(it):
