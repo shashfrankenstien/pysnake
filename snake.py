@@ -190,7 +190,7 @@ class SnakeGame(object):
 				key = None
 
 
-	def chalaa(self):
+	def play(self):
 		self.playing = True
 		self.input_thread = Thread(target=self.__read_keys)
 		self.input_thread.start()
@@ -401,7 +401,7 @@ class Crash(Exception):
 
 
 if __name__ == '__main__':
-	SnakeGame().chalaa()
+	SnakeGame(width=70).play()
 	# print(Colors.colorize('hello', Colors.BLUE))
 
 

@@ -1,2 +1,2 @@
--e git+https://github.com/shashfrankenstien/SG-Utils.git#egg=sg_utils
+git+https://github.com/shashfrankenstien/SG-Utils.git
 birdy
