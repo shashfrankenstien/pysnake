@@ -16,9 +16,16 @@ USE_EMOJI = 0
 GRADUAL_FOOD_TOSS = 1
 LEVEL_UP_AT = {
 	0:1,
-	10:2,
+	2:2,
+	3:3,
+	4:4,
+	5:5,
+	10:6,
+	15:5,
+	20:6,
 	25:3
 }
+
 
 def print_it(it):
 	print((' '*10)+str(it))
@@ -84,7 +91,7 @@ class SnakeGame(object):
 
 
 	def __make_title(self):
-		level = 'Level: {}'.format(self.obstacle.current_level)
+		level = 'Level: {}'.format(self.obstacle.current_level_display)
 		# top_scorer, top_score = self.score.current_high_score
 		# high_score = 'High Score: {} {}'.format(top_scorer, top_score)
 		side_length = int((self.width-len(self.title))/2)
@@ -234,7 +241,8 @@ class Obstacles(object):
 		self.locations = defaultdict(dict)
 		self.new_locations = defaultdict(dict)
 
-		self.levels = {
+		self.current_level = 1
+		self.levels_base = {
 			1: dotdict({
 				'feeding_interval': feeding_interval,
 				'feed_wait_time': feeding_interval+1,
@@ -252,9 +260,35 @@ class Obstacles(object):
 				'feed_wait_time': int(self.height)+1,
 				'gradual_food_toss': 1,
 				'food_gradation':1
+			}),
+			4: dotdict({
+				'feeding_interval': feeding_interval,
+				'feed_wait_time': feeding_interval+1,
+				'gradual_food_toss': 0,
+				'food_gradation':1,
+				'walls':{},
+				'wall_count':1
+			}),
+			5: dotdict({
+				'feeding_interval': feeding_interval,
+				'feed_wait_time': feeding_interval+1,
+				'gradual_food_toss': 0,
+				'food_gradation':1,
+				'walls':{},
+				'wall_count':2
+			}),
+			6: dotdict({
+				'feeding_interval': feeding_interval,
+				'feed_wait_time': feeding_interval+1,
+				'gradual_food_toss': 0,
+				'food_gradation':1,
+				'walls':{},
+				'wall_count':3
 			})
 		}
-		self.current_level = 1
+
+		self.levels = self.__copy_levels()
+		self.current_level_display = 0
 		
 
 	def toss(self, board, n=10):
@@ -273,7 +307,29 @@ class Obstacles(object):
 			self.levels[self.current_level].feed_wait_time = 0
 			self.poison_move_tracker = 0
 
+		board = self.grow_walls(board)
 		return self.__render(board)
+
+
+	def grow_walls(self, board):
+		level_props = self.levels[self.current_level]
+		if 'walls' in level_props:
+			if level_props.walls == {}:
+				level_props.walls = {random.randrange(1, self.height-1):{} for _ in range(level_props.wall_count)}
+			else:
+				height = int(self.width-2)
+				grow = False
+				sample_wall = list(level_props.walls.values())[0]
+				new_brick = len(sample_wall)+1
+				if new_brick > height:
+					self.levels[self.current_level].walls = {}
+
+				for wall in level_props.walls:
+					level_props.walls[wall][new_brick] = random.choice(self.poisons)
+					for brick in level_props.walls[wall]:
+						# print(wall,brick, type(self.new_locations))
+						self.new_locations[wall][brick] = level_props.walls[wall][brick]
+		return board
 
 
 
@@ -288,6 +344,7 @@ class Obstacles(object):
 			if y+1<self.height: self.locations[y+1] = {x:self.__sweeper for x in range(1, self.width-1)}
 		else:
 			self.locations = self.new_locations
+
 
 		for y in self.locations:
 			for x in self.locations[y]:
@@ -322,8 +379,14 @@ class Obstacles(object):
 			del self.locations[y][x]
 
 	def level_up(self, level):
-		if level in self.levels:
+		if level in self.levels and level != self.current_level:
 			self.current_level = level
+			self.current_level_display += 1
+			self.levels = self.__copy_levels()
+
+	def __copy_levels(self):
+		return {level:dotdict({prop:self.levels_base[level][prop] for prop in self.levels_base[level]}) for level in self.levels_base}
+
 
 
 
