@@ -464,7 +464,13 @@ class Crash(Exception):
 
 
 if __name__ == '__main__':
-	SnakeGame(width=70).play()
+	game = SnakeGame(width=70)
+	try:
+		game.play()
+	except Exception as e:
+		print(e)
+		game.quit()
+
 	# print(Colors.colorize('hello', Colors.BLUE))
 
 
