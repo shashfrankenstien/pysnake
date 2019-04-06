@@ -38,7 +38,8 @@ bye_bye_phrases = [
 	'Fate Worse than Death', 
 	'Monument of Humiliation and Defeat', 
 	'Talk to the Fist',
-	'Sleep with the fishes'
+	'Sleep with the fishes',
+	'Lights out!'
 ]
 
 
