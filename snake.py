@@ -184,7 +184,9 @@ class SnakeGame(object):
 
 		for x,y in self.snake.address:
 			board[y][x] = self.snake.char
-		if msg: board = self.__crash_message(msg, board, Colors.RED)
+		if msg: 
+			msg = " "+msg+" "
+			board = self.__crash_message(msg, board, Colors.RED)
 		return board
 
 	def __do_level_change(self):
