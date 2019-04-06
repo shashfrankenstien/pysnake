@@ -4,31 +4,46 @@ from collections import deque, defaultdict
 from score_keeper import TwitterScoreKeeper
 from getkeys import getch, keys
 from emoji import emoji
+import argparse
 import base64
 import copy
 import random
 import string
 import json
 import os
+import shutil
 import time
 
-USE_EMOJI = 0
+parser = argparse.ArgumentParser()
+parser.add_argument("-e","--emoji", help="Use emoji faces", action="store_true")
+args = parser.parse_args()
+
+
+
+USE_EMOJI = args.emoji
+FRAME_WIDTH = 70
+PADDING_LEFT = 10
 GRADUAL_FOOD_TOSS = 1
 LEVEL_UP_AT = {
 	0:1,
-	2:2,
-	3:3,
-	4:4,
-	5:5,
-	10:6,
-	15:5,
-	20:6,
-	25:3
+	5:2,
+	10:3,
+	15:4,
+	20:5,
+	25:6,
 }
+
+bye_bye_phrases = [
+	'Hasta la vista, baby', 
+	'Fate Worse than Death', 
+	'Monument of Humiliation and Defeat', 
+	'Talk to the Fist',
+	'Sleep with the fishes'
+]
 
 
 def print_it(it):
-	print((' '*10)+str(it))
+	print((' '*PADDING_LEFT)+str(it))
 
 class Colors(object):
 	RED = 31
@@ -72,7 +87,8 @@ class SnakeGame(object):
 			head_x=self.width/2, 
 			head_y=self.height/2, 
 			length=4,
-			color=Colors.GREEN)
+			color=Colors.GREEN
+		)
 
 		if USE_EMOJI:
 			self.edibles = emoji.get_foods()
@@ -86,7 +102,8 @@ class SnakeGame(object):
 			edibles = self.edibles,
 			poisons = self.poisons,
 			board_height=self.height,
-			board_width=self.width)
+			board_width=self.width
+		)
 
 
 
@@ -149,15 +166,15 @@ class SnakeGame(object):
 		msg = None
 		new_head = self.snake.move()
 		if not new_head:
-			msg = 'Cannibalized!'
+			msg = random.choice(['Cannibalized!'] + bye_bye_phrases)
 			self.quit()
 		else:
 			new_x, new_y = new_head
 			if self.did_hit_border(new_x,new_y):
-				msg = 'Crashed!'
+				msg = random.choice(['Crashed!'] + bye_bye_phrases)
 				self.quit()
 			elif self.obstacle.is_poisonous(new_x,new_y):
-				msg = 'Poisoned!'
+				msg = random.choice(['Poisoned!'] + bye_bye_phrases)
 				self.quit()
 			elif self.obstacle.exists(new_x,new_y):
 				self.snake.eat(self.obstacle.get_food_at(new_x,new_y))
@@ -204,20 +221,25 @@ class SnakeGame(object):
 		while self.playing:
 			self.render()
 			try:
-				key = self.inputs.pop()
-				if key == keys.Q: 
-					self.quit()
-				elif key == keys.UP or key == keys.W:
-					self.snake.turn_up()
-				elif key == keys.DOWN or  key == keys.S:
-					self.snake.turn_down()
-				elif key == keys.RIGHT or key == keys.D:
-					self.snake.turn_right()
-				elif key == keys.LEFT or key == keys.A:
-					self.snake.turn_left()
-			except IndexError:
-				pass
-			time.sleep(self.refresh_rate)
+				try:
+					key = self.inputs.pop()
+					if keys.isQ(key): 
+						print("Press Enter to quit.")
+						self.quit()
+					elif key == keys.UP or keys.isW(key):
+						self.snake.turn_up()
+					elif key == keys.DOWN or keys.isS(key):
+						self.snake.turn_down()
+					elif key == keys.RIGHT or keys.isA(key):
+						self.snake.turn_right()
+					elif key == keys.LEFT or keys.isD(key):
+						self.snake.turn_left()
+				except IndexError:
+					pass
+				time.sleep(self.refresh_rate)
+			except KeyboardInterrupt:
+				print("Press Enter to quit.")
+				self.quit()
 		self.score.set_high_score()
 		self.input_thread.join()
 
@@ -464,7 +486,7 @@ class Crash(Exception):
 
 
 if __name__ == '__main__':
-	game = SnakeGame(width=70)
+	game = SnakeGame(width=FRAME_WIDTH)
 	try:
 		game.play()
 	except Exception as e:
