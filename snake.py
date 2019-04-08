@@ -11,18 +11,30 @@ import random
 import string
 import json
 import os
+import sys
 import shutil
 import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-e","--emoji", help="Use emoji faces", action="store_true")
+parser.add_argument("-c","--nocolor", help="Don't use colors", action="store_true")
+parser.add_argument("-W","--width", help="Don't use colors", type=int)
+parser.add_argument("-H","--height", help="Don't use colors", type=int)
 args = parser.parse_args()
 
 
 
-USE_EMOJI = args.emoji
-FRAME_WIDTH = 70
+CLEAR_SCR_CMD = 'clear'
+if sys.platform in ("win32" , "win64"):
+	#Windows specific conf
+	CLEAR_SCR_CMD = 'cls'
+
+
+FRAME_WIDTH = args.width or 70
+FRAME_HEIGHT = args.height or 35
 PADDING_LEFT = 10
+USE_EMOJI = args.emoji
+USE_COLOR = not args.nocolor
 GRADUAL_FOOD_TOSS = 1
 LEVEL_UP_AT = {
 	0:1,
@@ -57,18 +69,21 @@ class Colors(object):
 
 	@staticmethod
 	def colorize(message, color, bold=False):
-		if isinstance(color, list):
-			color = random.choice(color)
-		color_code = '{};{}'.format(1 if bold else 0, color)
-		# return "\u001b[{}m".format(color_code)+message+"\u001b[0m"
-		return "\033[{}m".format(color_code)+message+"\033[0m"
+		if USE_COLOR:
+			if isinstance(color, list):
+				color = random.choice(color)
+			color_code = '{};{}'.format(1 if bold else 0, color)
+			# return "\u001b[{}m".format(color_code)+message+"\u001b[0m"
+			return "\033[{}m".format(color_code)+message+"\033[0m"
+		else:
+			return message
 
 
 
 class SnakeGame(object):
-	def __init__(self, width=61):
+	def __init__(self, width=61, height=35):
 		self.width = width
-		self.height = 35
+		self.height = height
 
 		self.board_color = Colors.BLUE
 		self.top_bottom_wall_char = '='
@@ -196,7 +211,7 @@ class SnakeGame(object):
 
 	def render(self):
 		self.__do_level_change()
-		os.system('clear')
+		os.system(CLEAR_SCR_CMD)
 		print_it(self.__make_title())
 		board = self.__blank_board()
 		board = self.obstacle.toss(board, n=20)
@@ -489,7 +504,7 @@ class Crash(Exception):
 
 
 if __name__ == '__main__':
-	game = SnakeGame(width=FRAME_WIDTH)
+	game = SnakeGame(width=FRAME_WIDTH, height=FRAME_HEIGHT)
 	try:
 		game.play()
 	except Exception as e:
