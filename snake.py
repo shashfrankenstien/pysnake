@@ -132,7 +132,6 @@ class SnakeGame(object):
 		r_side = ' '*(side_length - len(level))
 		# return Colors.colorize('{}{}{}{}{}'.format(high_score, l_side, self.title, r_side, score), Colors.WHITE)
 
-		side = ' '*side_length
 		return Colors.colorize('{}{}{}{}'.format(l_side, self.title, r_side, level), Colors.WHITE)
 
 
@@ -151,7 +150,7 @@ class SnakeGame(object):
 		top_botom = Colors.colorize(self.top_bottom_wall_char,self.board_color)
 		sides = Colors.colorize(self.side_wall_char,self.board_color)
 		board.append([top_botom]*self.width)
-		for i in range(self.height):
+		for _ in range(self.height):
 			board.append([sides] + [' ']*(self.width-(len(self.side_wall_char)*2)) + [sides])
 		board.append([top_botom]*self.width)
 		return board
@@ -336,7 +335,7 @@ class Obstacles(object):
 			self.new_locations = defaultdict(dict)
 			food_count = int(n*0.3)
 			self.edibles_count = food_count
-			for i in range(n):
+			for _ in range(n):
 				x = random.randrange(1,self.width-2)
 				y = random.randrange(1,self.height-2)
 				if food_count:
@@ -358,7 +357,7 @@ class Obstacles(object):
 				level_props.walls = {random.randrange(1, self.height-1):{} for _ in range(level_props.wall_count)}
 			else:
 				height = int(self.width-2)
-				grow = False
+				# grow = False
 				sample_wall = list(level_props.walls.values())[0]
 				new_brick = len(sample_wall)+1
 				if new_brick > height:
