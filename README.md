@@ -1,7 +1,9 @@
 # pysnake
-### Terminal implementation of the Snake game in python
+Terminal Snake game written in python
 
-Use the following to install and play
+![Python 3.6](https://img.shields.io/badge/python-3.6+-blue.svg)
+
+## Installation and Usage
 
 ```
 git clone https://github.com/shashfrankenstien/pysnake.git
