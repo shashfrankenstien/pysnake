@@ -3,7 +3,7 @@ from sg_utils import dotdict
 from collections import deque, defaultdict
 from score_keeper import TwitterScoreKeeper
 from getkeys import getch, keys
-from emoji import emoji
+import emoji
 import argparse
 import base64
 import copy
@@ -16,7 +16,7 @@ import shutil
 import time
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-e","--emoji", help="Use emoji faces", action="store_true")
+parser.add_argument("-e","--emoji", help="Use emoji faces (Window twice as wide)", action="store_true")
 parser.add_argument("-c","--nocolor", help="Don't use colors", action="store_true")
 parser.add_argument("-W","--width", help="Don't use colors", type=int)
 parser.add_argument("-H","--height", help="Don't use colors", type=int)
@@ -88,8 +88,8 @@ class SnakeGame(object):
 
 		if USE_EMOJI:
 			self.__msg_width = width*2
-			self.top_bottom_wall_char = '=='
-			self.side_wall_char = '||'
+			self.top_bottom_wall_char = emoji.Borders.HORIZONTAL
+			self.side_wall_char = emoji.Borders.VERTICAL
 			self.space_character = '  '
 		else:
 			self.__msg_width = width
@@ -115,17 +115,7 @@ class SnakeGame(object):
 			color=Colors.GREEN
 		)
 
-		if USE_EMOJI:
-			self.edibles = emoji.get_foods()
-			self.poisons = emoji.get_deadly()
-		else:
-			self.edibles = [Colors.colorize(x, [Colors.LIGHT_BLUE, Colors.GREEN, Colors.YELLOW, Colors.WHITE]) for x in ['$', '%', '@', '#','^', '&']+list(string.ascii_lowercase)]
-			self.poisons = [Colors.colorize(x,Colors.RED) for x in ['X']]
-
-
 		self.obstacle = Obstacles(
-			edibles = self.edibles,
-			poisons = self.poisons,
 			board_height=self.height,
 			board_width=self.width
 		)
@@ -177,7 +167,7 @@ class SnakeGame(object):
 			start_x = int((self.width-len(m))/2)
 			for char in range(len(m)):
 				emoji_mod = (" " if USE_EMOJI else "")
-				board[start_y+row][start_x+char] = (Colors.colorize(m[char], color) if color else m[char]) + emoji_mod
+				board[start_y+row][start_x+char] = (Colors.colorize(m[char], color, bold=True) if color else m[char]) + emoji_mod
 		return board
 
 
@@ -196,15 +186,15 @@ class SnakeGame(object):
 			self.quit()
 		else:
 			new_x, new_y = new_head
-			if self.did_hit_border(new_x,new_y):
+			if self.did_hit_border(new_x, new_y):
 				msg = random.choice(['Crashed!'] + bye_bye_phrases)
 				self.quit()
 			elif self.obstacle.is_poisonous(new_x,new_y):
 				msg = random.choice(['Poisoned!'] + bye_bye_phrases)
 				self.quit()
 			elif self.obstacle.exists(new_x,new_y):
-				self.snake.eat(self.obstacle.get_food_at(new_x,new_y))
-				self.obstacle.got_eaten(new_x,new_y)
+				self.snake.eat(self.obstacle.get_food_at(new_x, new_y))
+				self.obstacle.got_eaten(new_x, new_y)
 				self.score.increment()
 
 		for x,y in self.snake.address:
@@ -279,12 +269,22 @@ class SnakeGame(object):
 
 
 class Obstacles(object):
-	def __init__(self, edibles, poisons, board_height, board_width, feeding_interval=100):
+	def __init__(self, board_height, board_width, feeding_interval=100):
 		self.height = board_height
 		self.width = board_width
-		self.__sweeper = '.'
+
+		if USE_EMOJI:
+			edibles = emoji.get_foods()
+			poisons = emoji.get_deadly()
+			self.__sweeper = emoji.Borders.GENERIC
+		else:
+			edibles = [Colors.colorize(x, [Colors.LIGHT_BLUE, Colors.GREEN, Colors.YELLOW, Colors.WHITE]) for x in ['$', '%', '@', '#','^', '&']+list(string.ascii_lowercase)]
+			poisons = [Colors.colorize(x,Colors.RED) for x in ['X']]
+			self.__sweeper = '.'
+
 		self.edibles = [e for e in edibles if e!=self.__sweeper]
 		self.poisons = [p for p in poisons if p!=self.__sweeper]
+
 		self.edibles_count = 0
 		self.poison_move_tracker = 0
 
