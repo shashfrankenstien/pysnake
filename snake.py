@@ -12,16 +12,16 @@ import string
 import json
 import os
 import sys
-import shutil
 import time
+import shutil
 
+terminal_size = shutil.get_terminal_size(fallback=(80, 35))
 parser = argparse.ArgumentParser()
-parser.add_argument("-e","--emoji", help="Use emoji faces (Window twice as wide)", action="store_true")
+parser.add_argument("-e","--emoji", help="Use emoji faces", action="store_true")
 parser.add_argument("-c","--nocolor", help="Don't use colors", action="store_true")
-parser.add_argument("-W","--width", help="Don't use colors", type=int)
-parser.add_argument("-H","--height", help="Don't use colors", type=int)
+parser.add_argument("-W","--width", help="Don't use colors", type=int, default=terminal_size.columns)
+parser.add_argument("-H","--height", help="Don't use colors", type=int, default=terminal_size.lines)
 args = parser.parse_args()
-
 
 
 CLEAR_SCR_CMD = 'clear'
@@ -30,10 +30,13 @@ if sys.platform in ("win32" , "win64"):
 	CLEAR_SCR_CMD = 'cls'
 
 
-FRAME_WIDTH = args.width or 70
-FRAME_HEIGHT = args.height or 35
-PADDING_LEFT = 10
 USE_EMOJI = args.emoji
+# Horizontal padding to center board
+wdelta = terminal_size.columns - min(args.width, terminal_size.columns) # capped at terminal width
+PADDING = max(int(wdelta/2), 5) # capped to atleast 5 units of padding
+FRAME_WIDTH = terminal_size.columns - (2*PADDING) # Applying horizontal padding on both sides
+
+FRAME_HEIGHT = min(args.height, terminal_size.lines)
 USE_COLOR = not args.nocolor
 GRADUAL_FOOD_TOSS = 1
 LEVEL_UP_AT = {
@@ -56,7 +59,7 @@ bye_bye_phrases = [
 
 
 def print_it(it):
-	print((' '*PADDING_LEFT)+str(it))
+	print((' '*PADDING)+str(it))
 
 class Colors(object):
 	RED = 31
@@ -81,18 +84,19 @@ class Colors(object):
 
 
 class SnakeGame(object):
-	def __init__(self, width=61, height=35):
-		self.height = height
+	def __init__(self, width=FRAME_WIDTH, height=FRAME_HEIGHT):
+		self.height = height - 5 # accounting for 2 border lines, 2 text lines and 1 blank terminal prompt
 		self.width = width
 		self.board_color = Colors.BLUE
 
 		if USE_EMOJI:
-			self.__msg_width = width*2
+			self.width = int(self.width/2)
+			self.__msg_width = self.width*2
 			self.top_bottom_wall_char = emoji.Borders.HORIZONTAL
 			self.side_wall_char = emoji.Borders.VERTICAL
 			self.space_character = '  '
 		else:
-			self.__msg_width = width
+			self.__msg_width = self.width
 			self.top_bottom_wall_char = '='
 			self.side_wall_char = '|'
 			self.space_character = ' '
@@ -347,6 +351,7 @@ class Obstacles(object):
 			food_count = int(n*0.3)
 			self.edibles_count = food_count
 			for _ in range(n):
+				print(self.width)
 				x = random.randrange(1,self.width-2)
 				y = random.randrange(1,self.height-2)
 				if food_count:
@@ -514,7 +519,7 @@ class Crash(Exception):
 
 
 if __name__ == '__main__':
-	game = SnakeGame(width=FRAME_WIDTH, height=FRAME_HEIGHT)
+	game = SnakeGame()
 	try:
 		game.play()
 	except Exception:
