@@ -46,9 +46,9 @@ LEVEL_UP_AT = {
 }
 
 bye_bye_phrases = [
-	'Hasta la vista, baby', 
-	'Fate Worse than Death', 
-	'Monument of Humiliation and Defeat', 
+	'Hasta la vista, baby',
+	'Fate Worse than Death',
+	'Monument of Humiliation and Defeat',
 	'Talk to the Fist',
 	'Sleep with the fishes',
 	'Lights out!'
@@ -82,12 +82,21 @@ class Colors(object):
 
 class SnakeGame(object):
 	def __init__(self, width=61, height=35):
-		self.width = width
 		self.height = height
-
+		self.width = width
 		self.board_color = Colors.BLUE
-		self.top_bottom_wall_char = '='
-		self.side_wall_char = '|'
+
+		if USE_EMOJI:
+			self.__msg_width = width*2
+			self.top_bottom_wall_char = '=='
+			self.side_wall_char = '||'
+			self.space_character = '  '
+		else:
+			self.__msg_width = width
+			self.top_bottom_wall_char = '='
+			self.side_wall_char = '|'
+			self.space_character = ' '
+
 		self.title = '@snake_pysnake'
 		self.score = TwitterScoreKeeper()
 		# self.high_score_store = '.high_score'
@@ -99,9 +108,9 @@ class SnakeGame(object):
 		self.playing = False
 		self.refresh_rate = 0.1
 
-		self.snake = Snake(emoji.get_random_face() if USE_EMOJI else 'o', 
-			head_x=self.width/2, 
-			head_y=self.height/2, 
+		self.snake = Snake(emoji.get_random_face() if USE_EMOJI else 'o',
+			head_x=self.width/2,
+			head_y=self.height/2,
 			length=4,
 			color=Colors.GREEN
 		)
@@ -113,7 +122,7 @@ class SnakeGame(object):
 			self.edibles = [Colors.colorize(x, [Colors.LIGHT_BLUE, Colors.GREEN, Colors.YELLOW, Colors.WHITE]) for x in ['$', '%', '@', '#','^', '&']+list(string.ascii_lowercase)]
 			self.poisons = [Colors.colorize(x,Colors.RED) for x in ['X']]
 
-		
+
 		self.obstacle = Obstacles(
 			edibles = self.edibles,
 			poisons = self.poisons,
@@ -127,7 +136,7 @@ class SnakeGame(object):
 		level = 'Level: {}'.format(self.obstacle.current_level_display)
 		# top_scorer, top_score = self.score.current_high_score
 		# high_score = 'High Score: {} {}'.format(top_scorer, top_score)
-		side_length = int((self.width-len(self.title))/2)
+		side_length = int((self.__msg_width-len(self.title))/2)
 		l_side = ' '*(side_length)
 		r_side = ' '*(side_length - len(level))
 		# return Colors.colorize('{}{}{}{}{}'.format(high_score, l_side, self.title, r_side, score), Colors.WHITE)
@@ -139,7 +148,7 @@ class SnakeGame(object):
 		score = 'Score: {}'.format(self.score.score)
 		top_scorer, top_score = self.score.current_high_score
 		high_score = 'High Score: {} {}'.format(top_scorer, top_score)
-		side_length = int((self.width)/2)
+		side_length = int((self.__msg_width)/2)
 		l_side = ' '*(side_length - len(high_score))
 		r_side = ' '*(side_length - len(score))
 		return Colors.colorize('{}{}{}{}'.format(high_score, l_side, r_side, score), Colors.WHITE)
@@ -147,11 +156,12 @@ class SnakeGame(object):
 
 	def __blank_board(self):
 		board = []
-		top_botom = Colors.colorize(self.top_bottom_wall_char,self.board_color)
+		top_botom = Colors.colorize(self.top_bottom_wall_char, self.board_color)
 		sides = Colors.colorize(self.side_wall_char,self.board_color)
 		board.append([top_botom]*self.width)
 		for _ in range(self.height):
-			board.append([sides] + [' ']*(self.width-(len(self.side_wall_char)*2)) + [sides])
+			# board.append([sides] + [self.space_character]*(self.width-(len(self.side_wall_char)*2)) + [sides])
+			board.append([sides] + [self.space_character]*(self.width-2) + [sides])
 		board.append([top_botom]*self.width)
 		return board
 
@@ -166,7 +176,8 @@ class SnakeGame(object):
 			m = messages[row]
 			start_x = int((self.width-len(m))/2)
 			for char in range(len(m)):
-				board[start_y+row][start_x+char] = Colors.colorize(m[char], color) if color else m[char]
+				emoji_mod = (" " if USE_EMOJI else "")
+				board[start_y+row][start_x+char] = (Colors.colorize(m[char], color) if color else m[char]) + emoji_mod
 		return board
 
 
@@ -198,7 +209,7 @@ class SnakeGame(object):
 
 		for x,y in self.snake.address:
 			board[y][x] = self.snake.char
-		if msg: 
+		if msg:
 			msg = " "+msg+" "
 			board = self.__crash_message(msg, board, Colors.RED)
 		return board
@@ -240,7 +251,7 @@ class SnakeGame(object):
 			try:
 				try:
 					key = self.inputs.pop()
-					if keys.isQ(key): 
+					if keys.isQ(key):
 						print("Press Enter to quit.")
 						self.quit()
 					elif key == keys.UP or keys.isW(key):
@@ -328,7 +339,7 @@ class Obstacles(object):
 
 		self.levels = self.__copy_levels()
 		self.current_level_display = 0
-		
+
 
 	def toss(self, board, n=10):
 		if self.__can_toss():
@@ -434,7 +445,7 @@ class Snake(object):
 	def __init__(self, snake_char, head_x, head_y, length=2, color=None):
 		if color:
 			self.char = Colors.colorize(snake_char, color)
-		else:	
+		else:
 			self.char = snake_char
 		self.direction = 'U' #U,D,L,R
 		self.head_x = int(head_x)
@@ -480,7 +491,7 @@ class Snake(object):
 				self.alive = False
 				return self.alive
 			else:
-				if self.pop_tail: 
+				if self.pop_tail:
 					self.address.pop()
 				self.address.appendleft(new_head)
 				self.pop_tail = True
@@ -506,8 +517,9 @@ if __name__ == '__main__':
 	game = SnakeGame(width=FRAME_WIDTH, height=FRAME_HEIGHT)
 	try:
 		game.play()
-	except Exception as e:
-		print(e)
+	except Exception:
+		import traceback
+		traceback.print_exc()
 		game.quit()
 
 	# print(Colors.colorize('hello', Colors.BLUE))
