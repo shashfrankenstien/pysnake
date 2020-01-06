@@ -17,10 +17,10 @@ import shutil
 
 terminal_size = shutil.get_terminal_size(fallback=(80, 35))
 parser = argparse.ArgumentParser()
-parser.add_argument("-e","--emoji", help="Use emoji faces", action="store_true")
+parser.add_argument("-e","--emoji", help=u"Use emoji faces \U0001F603", action="store_true")
 parser.add_argument("-c","--nocolor", help="Don't use colors", action="store_true")
-parser.add_argument("-W","--width", help="Don't use colors", type=int, default=terminal_size.columns)
-parser.add_argument("-H","--height", help="Don't use colors", type=int, default=terminal_size.lines)
+parser.add_argument("-W","--width", help="Set frame width in number of characters", type=int, default=terminal_size.columns)
+parser.add_argument("-H","--height", help="Set frame height in number of characters", type=int, default=terminal_size.lines)
 args = parser.parse_args()
 
 
@@ -280,10 +280,12 @@ class Obstacles(object):
 		if USE_EMOJI:
 			edibles = emoji.get_foods()
 			poisons = emoji.get_deadly()
-			self.__sweeper = emoji.Borders.GENERIC
+			self.__sweeper = emoji.Borders.HORIZONTAL2
 		else:
-			edibles = [Colors.colorize(x, [Colors.LIGHT_BLUE, Colors.GREEN, Colors.YELLOW, Colors.WHITE]) for x in ['$', '%', '@', '#','^', '&']+list(string.ascii_lowercase)]
-			poisons = [Colors.colorize(x,Colors.RED) for x in ['X']]
+			food_chars = ['$', '%', '@', '#','^', '&']+list(string.ascii_lowercase)
+			poison_char = ['X']
+			edibles = [Colors.colorize(x, [Colors.LIGHT_BLUE, Colors.GREEN, Colors.YELLOW, Colors.WHITE]) for x in food_chars if x not in poison_char]
+			poisons = [Colors.colorize(x,Colors.RED) for x in poison_char]
 			self.__sweeper = '.'
 
 		self.edibles = [e for e in edibles if e!=self.__sweeper]

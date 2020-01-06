@@ -109,14 +109,13 @@ Faces = dotdict({
 Deadly = dotdict({
 	'OGRE':u'\U0001F479',
 	'GOBLIN':u'\U0001F47A',
-	'SKULL':u'\U0001F480'
+	# 'SKULL':u'\U0001F480'
 })
 Borders = dotdict({
-	# 'HORIZONTAL':u'\U00002796',
-	# 'VERTICAL':u'\U0001F488',
 	'HORIZONTAL':u'\U0001F6A5',
+	'HORIZONTAL2':u'\U00002796',
 	'VERTICAL':u'\U0001F6A6',
-	'GENERIC':u'\U0001F539',
+	'VERTICAL2':u'\U0001F539',
 })
 
 def get_foods():
