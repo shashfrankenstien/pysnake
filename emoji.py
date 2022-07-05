@@ -1,6 +1,19 @@
 # Reference - https://github.com/carpedm20/emoji/blob/master/emoji/unicode_codes.py
-from sg_utils import dotdict
 import random
+
+
+class dotdict(dict):
+	"""dot.notation access to dictionary attributes"""
+	
+	def __getattr__(self, attr):
+		if attr.startswith('__'):
+			raise AttributeError
+		return self.get(attr, None)
+	
+	__setattr__ = dict.__setitem__
+	__delattr__ = dict.__delitem__
+
+
 
 Foods = dotdict({
 	'MUSHROOM': u'\U0001F344',

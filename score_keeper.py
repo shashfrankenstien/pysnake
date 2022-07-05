@@ -1,15 +1,15 @@
-from birdy.twitter import UserClient, TwitterClientError
+
 from collections import defaultdict
 import os
 
-twitter = UserClient('VxihO3nqNHKxS8wHJ1RbBJ9O6',
-                    '0O5uvNiartkXxMynEufXU89UwBkTTOt9sIzquYTRpDXk1LFC0P',
-                    '930956740031590400-OPm95rGIWOXPPuCIjilsast0HiPxkL8',
-                    '0CdlbpHy7uUYkIMfq2q42xOgiKksbNQ27yulW5CTFhUQd')
+import json
 
-import requests
+from importlib.util import find_spec
+
+
 
 def internet_on(url='http://www.google.com/', timeout=2):
+	import requests
 	print('Attempting Network Connection...')
 	try:
 		_ = requests.get(url, timeout=timeout)
@@ -21,6 +21,12 @@ def internet_on(url='http://www.google.com/', timeout=2):
 
 class TwitterScoreKeeper(object):
 	def __init__(self):
+		from birdy.twitter import UserClient, TwitterClientError
+		twitter = UserClient('VxihO3nqNHKxS8wHJ1RbBJ9O6',
+									'0O5uvNiartkXxMynEufXU89UwBkTTOt9sIzquYTRpDXk1LFC0P',
+									'930956740031590400-OPm95rGIWOXPPuCIjilsast0HiPxkL8',
+									'0CdlbpHy7uUYkIMfq2q42xOgiKksbNQ27yulW5CTFhUQd')
+
 		self.tw_screen_name = 'snake_pysnake'
 		self.current_user = os.getlogin()
 		self.score = 0
@@ -67,11 +73,13 @@ class TwitterScoreKeeper(object):
 	def get_high_scores(self):
 		return self.high_scores
 
+
+	
 	
 
 
 
-class ScoreStore(object):
+class JsonScoreKeeper(object):
 	def __init__(self):
 		self.score_file = 'high_score.json'
 		self.current_user = os.getlogin()
@@ -79,21 +87,28 @@ class ScoreStore(object):
 		self.__init_score_file()
 
 	def __init_score_file(self):
-		if not os.path.isfile(self.score_file):self.__set_scores(scores={})
 		high_scores = self.__get_scores()
-		if not isinstance(high_scores, dict):
-			self.__set_scores(scores={})
-		elif self.current_user not in high_scores:
-			high_scores[self.current_user] = self.score
-			self.__set_scores(scores=high_scores)
-
+		if self.current_user not in high_scores:
+			self.__set_scores(score=self.score)
+		self.current_high_score = self.__get_top_scorer()
+		
+		
 	def __get_scores(self):
-		with open(self.score_file, 'rb') as handle:
+		if not os.path.isfile(self.score_file):
+			return {}
+		with open(self.score_file, 'r') as handle:
 			return json.load(handle)
 
-	def __set_scores(self, scores):
-		with open(self.score_file, 'wb') as handle:
-			json.dump(scores, handle, indent=4)
+	def __get_top_scorer(self):
+		hs_temp = self.__get_scores()
+		scorer = max(hs_temp, key=hs_temp.get)
+		return scorer, hs_temp[scorer]
+
+	def __set_scores(self, score):
+		hstemp = self.__get_scores()
+		hstemp[self.current_user] = score
+		with open(self.score_file, 'w') as handle:
+			json.dump(hstemp, handle, indent=4)
 
 
 	def increment(self):
@@ -102,19 +117,22 @@ class ScoreStore(object):
 	def set_high_score(self):
 		high_scores = self.__get_scores()
 		if self.score > high_scores[self.current_user]:
-			high_scores[self.current_user] = self.score
-			self.__set_scores(high_scores)
+			self.__set_scores(self.score)
+
 	
-	def get_my_high_score(self):
-		return self.__get_scores()[self.current_user]
+	def get_high_scores(self):
+		return self.__get_scores()
 
 
-	def get_top_scorer(self, n):
-		high_scores = self.__get_scores()
+if find_spec("birdy") is not None:
+	ScoreKeeper= TwitterScoreKeeper
+else:
+	ScoreKeeper = JsonScoreKeeper
+
 
 
 if __name__ == '__main__':
-	t = TwitterScoreStore()
+	t = ScoreKeeper()
 	t.increment()
 	t.increment()
 	t.increment()

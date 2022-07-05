@@ -1,7 +1,7 @@
 from threading import Thread
-from sg_utils import dotdict
+from emoji import dotdict
 from collections import deque, defaultdict
-from score_keeper import TwitterScoreKeeper
+from score_keeper import ScoreKeeper
 from getkeys import getch, keys
 import emoji
 import argparse
@@ -102,7 +102,7 @@ class SnakeGame(object):
 			self.space_character = ' '
 
 		self.title = '@snake_pysnake'
-		self.score = TwitterScoreKeeper()
+		self.score = ScoreKeeper()
 		# self.high_score_store = '.high_score'
 		# self.__set_high_score()
 

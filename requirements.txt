@@ -1,3 +1,0 @@
-git+https://github.com/shashfrankenstien/SG-Utils.git
-birdy
-
